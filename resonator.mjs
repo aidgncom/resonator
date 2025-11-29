@@ -1,0 +1,650 @@
+/**
+ * Resonator - Official BEAT Interpreter
+ * Copyright (c) 2025 Aidgn
+ * SSPL-1.0 - See LICENSE for details.
+ *
+ * Resonator is the official BEAT interpreter. Platform-agnostic at core,
+ * suitable for Web, Mobile, IoT, Game, Finance and other event-driven systems.
+ *
+ * BEAT is defined as an expressive system, not a generic logging idea.
+ * Consistent interpretation of BEAT across different environments is also
+ * important to maintain semantic compatibility.
+ *
+ * Therefore, the following core BEAT INTERPRETATION LAYER adopts
+ * the BEAT specification directly, ensuring consistent interpretation
+ * of event sequences expressed in BEAT.
+ *
+ */
+
+// ----- START: BEAT INTERPRETATION LAYER -----
+
+// 🚨 Important: Keep this mapping consistent with the BEAT grammar defined by the producer
+const BEAT = {
+	TIC: 100,		// Tick (default: 100ms)
+	TOK: {			// Token mapping
+		S: '!',							// Space
+		T: '~',							// Time
+		A: '*',							// Action
+		R: '/',							// Repeat
+		D: '^',							// Distance
+		V: ':',							// Value
+	}
+};
+
+// ----- END: BEAT INTERPRETATION LAYER -----
+
+/**
+ * Resonator is protected under the SSPL. In the RESONATOR CUSTOM LAYER,
+ * all other logic, including control flow and execution policies, security and risk controls,
+ * routing and orchestration, resource management, output policy, AI functions, analytics,
+ * and strategies specific to the target domain or environment, may be modified or extended as needed.
+ * 
+ * Common entry forms:
+ * - export default { fetch(request, env, ctx) }
+ * - export default function handler(request)
+ * - Custom handlers for any event-driven environment
+ */
+
+// ----- START: RESONATOR CUSTOM LAYER -----
+
+const RE_TIME = new RegExp(`(\\${BEAT.TOK.T}|\\${BEAT.TOK.R})(\\d+)(?=[\\${BEAT.TOK.A}\\${BEAT.TOK.R}\\${BEAT.TOK.S}]|_|$)`, 'g');
+const RE_SPACE = new RegExp(`(\\${BEAT.TOK.S}|\\${BEAT.TOK.T}|\\${BEAT.TOK.A})`, 'g');
+const EX_DEFAULT = `${BEAT.TOK.S}home${BEAT.TOK.T}23.7${BEAT.TOK.A}nav-2${BEAT.TOK.T}190.8${BEAT.TOK.A}nav-3${BEAT.TOK.T}37.5${BEAT.TOK.R}12.3${BEAT.TOK.A}help${BEAT.TOK.T}112.8${BEAT.TOK.A}more-1${BEAT.TOK.T}4.3${BEAT.TOK.S}prod${BEAT.TOK.T}103.4${BEAT.TOK.A}button-12${BEAT.TOK.T}105.0${BEAT.TOK.A}p1___2${BEAT.TOK.S}p1${BEAT.TOK.T}240.3${BEAT.TOK.A}img-1${BEAT.TOK.T}119.4${BEAT.TOK.A}buy-1${BEAT.TOK.T}1.3${BEAT.TOK.R}0.8${BEAT.TOK.R}0.8${BEAT.TOK.A}buy-1-up${BEAT.TOK.T}53.2${BEAT.TOK.A}review${BEAT.TOK.T}14${BEAT.TOK.S}review${BEAT.TOK.T}192.3${BEAT.TOK.A}nav-1___1${BEAT.TOK.T}5.4${BEAT.TOK.A}mycart___3${BEAT.TOK.S}cart`;
+const EX_SPACE = EX_DEFAULT.replace(RE_SPACE, ' $1').replace(/___(\d+)/g, ' ___$1').trimStart();
+
+const HEADER = { SIZE: 30000 }; // Header size limit (default: 30 KB)
+
+const STREAMING = {			// Security and Personalization
+	LOG: false,						// Shows live streaming logs. Advanced features such as AI insights can be applied here, but expect operational cost trade-offs (default: false)
+	TIME: false,					// Include timestamp in logs. Excluding it helps reduce re-identification risk and strengthen compliance (default: false)
+	HASH: false,					// Include hash in logs. Must be enabled for reassembly when batches are fragmented by producer settings such as POW=true (default: false)
+	BOT: true,						// Listens for the bot BEAT (default: true)
+	HUMAN: true,					// Listens for the human BEAT (default: true)
+};
+
+const ARCHIVING = { 		// Serverless Analytics with AI Insights
+	LOG: true,						// Archive user journeys and push logs to cloud storage (default: true)
+	TIME: false,					// Include timestamp in logs. Excluding it helps reduce re-identification risk and strengthen compliance (default: false)
+	HASH: false,					// Include hash in logs. Must be enabled for reassembly when batches are fragmented by producer settings such as POW=true (default: false)
+	SPACE: true,					// Add spaces to BEAT string for better readability (default: true)
+	AI: {
+		INSIGHTS: false,					// Enable AI insights of archived BEAT logs (default: false)
+		NAME: 'AI', 						// AI binding name (default: AI)
+		MODEL: '@cf/openai/gpt-oss-20b',	// AI model (default: @cf/openai/gpt-oss-20b)
+		BOUNCE: 1,							// AI insights skipped below N clicks (default: 1)
+		PROMPT: 1,							// Prompt format. Higher numbers need more capable AI (default: 1)
+		SITE: 1,							// Site type contexts for AI insights (default: 1)
+		TYPE: [								// Pick your site 1-20 type from the list
+			'Site type not specified - Analyze generally without assumptions.', // 1
+			'News/blog site - focus on reading time, content navigation, and topic switches.', // 2
+			'Portfolio/landing site - focus on section exploration, action triggers, and conversion paths.', // 3
+			'Social/forum site - focus on post creation, reply frequency, and member interactions.', // 4
+			'Documentation/wiki site - focus on page sequences, navigation efficiency, and reference jumps.', // 5
+			'B2B site - focus on content duration, contact triggers, and page paths.', // 6
+			'SaaS site - focus on feature discovery, tool interactions, and usage actions.', // 7
+			'E-commerce site - focus on product browsing, purchase actions, and payment flow.', // 8
+			'Marketplace site - focus on listing interactions, comparison loops, and transaction signals.', // 9
+			'Education site - focus on lesson sequences, completion rates, and engagement checks.', // 10
+			'Banking site - focus on task completion, security pauses, and process efficiency.', // 11
+			'Healthcare site - focus on service pages, selection patterns, and appointment actions.', // 12
+			'Government site - focus on service navigation, form interactions, and task success.', // 13
+			'Entertainment site - focus on play events, viewing duration, and replay behavior.', // 14
+			'Travel site - focus on destination pages, option comparison, and booking actions.', // 15
+			'Real estate site - focus on property interactions, detail time, and inquiry triggers.', // 16
+			'Job board site - focus on listing clicks, application triggers, and save actions.', // 17
+			'Delivery site - focus on menu navigation, selection process, and order completion.', // 18
+			'Dating site - focus on browsing sequences, interaction timing, and connection attempts.', // 19
+			'Gaming site - focus on session length, retry frequency, and activity cycles.', // 20
+		]
+	},
+	STORE: {								// Store finalized daily reports
+											// Follow setup video at <https://youtube.com/@aidgn>
+											// Basic run: https://yourdomain.com/rhythm/archive?token=1a2b3c4b
+											// Force run: https://yourdomain.com/rhythm/archive?token=1a2b3c4b&force
+											// Basic run for specific date: https://yourdomain.com/rhythm/archive?token=1a2b3c4b&date=2025-11-17
+											// Force run for specific date: https://yourdomain.com/rhythm/archive?token=1a2b3c4b&date=2025-11-17&force
+											// Automated run (Cron Job) via wrangler.toml: [[triggers.crons]] crons = ["0 3 * * *"]
+		CRON: false,						// Enable cron job (default: false)
+		NAME: 'R2',							// Storage binding name (default: R2)
+		TOKEN: '1a2b3c4b',					// Security token (default: 1a2b3c4b)
+											// 🚨 Important: Change this token before deployment
+		GMT: 9,								// Timezone offset (default: GMT+9)
+		BATCH: 6,							// Files to process at once, batch size for memory safety (default: 6)
+		LOOKBACK: 2,						// Days to include from recent window (default: 2)
+		GITHUB: {							// Back up to a private GitHub repo for direct conversation with the advanced AI assistant
+			OWNER: 'aidgncom',
+			REPO: 'ai-insights',
+			BRANCH: 'main',
+			COMMIT: 'Archive logs for',		// Commit message prefix (default: Archive logs for YYYY-MM-DD)
+		}
+	}
+};
+
+export default {
+	async fetch(request, env, ctx) {
+		const url = new URL(request.url);
+		const cookies = request.headers.get("Cookie") || "";
+
+		// Streaming handler
+		if (url.pathname === "/rhythm/" && url.searchParams.has("livestreaming")) {
+			if (STREAMING.LOG) { // Shows live streaming logs. Advanced features such as AI insights can be applied here, but expect operational cost trade-offs (default: false)
+				let logs = cookies;
+				logs = logs.replace(/(movement|rhythm_\d+)=(\d+)_([^_]+)_([^_]+)_/g, (m, name, field, time, hash) => {
+					const t = STREAMING.TIME ? time : '';
+					const h = STREAMING.HASH ? hash : '';
+					return `${name}=${field}_${t}_${h}_`;
+				});
+				ctx.waitUntil(console.log(logs));
+			}
+			const match = scan(cookies); // Movement: field_time_hash___tabs
+			if (!((STREAMING.BOT && match.bot) || (STREAMING.HUMAN && match.human))) return request.method === 'HEAD' ? new Response(null, {status: 204}) : fetch(request); // Early return when no detection. Reduces processing and network overhead
+			const save = match.movement[0]; // Store original value for comparison
+
+			// Update security field (OXXXXXXXXX)
+			// 🚨 Important: Configure WAF rules with these expressions: 0=Pass, 1=Managed Challenge, 2=Block
+			// Level 1 - Managed Challenge: (any(starts_with(http.request.cookies["movement"][*], "1")) and not http.cookie contains "cf_chl")
+			// Level 2 - Block: (any(starts_with(http.request.cookies["movement"][*], "2")))
+			if (STREAMING.BOT && match.bot) {
+				match.movement[0] = match.movement[0].replace(/^./, m => m < 2 ? +m + 1 : 2);
+				if (match.movement[0][0] < '2') console.log('⛔ bot: ' + match.bot + ' (level ' + match.movement[0][0] + ')'); // ⛔ bot: MachineGun:12 (level 1)
+			}
+
+			// Update personalization field (XOOOOOOOOO)
+			// 🚨 Important: Requires customizing inExecution() before enabling
+			// Use KV validation or an HMAC signature on the movement field to prevent tampering and verify reads and writes
+			// Values like 0000000000 or 0101010101 indicate independent flags per position
+			if (STREAMING.HUMAN && match.human) {
+				const field = match.movement[0].split('');
+				if (field[match.human] === '0') { // client sets 0 to repeat or 2 for one time after run
+					field[match.human] = '1';
+					match.movement[0] = field.join('');
+					console.log('✅ Human: ' + match.movement[0] + ' (case ' + match.human + ')'); // ✅ Human: 0100000000 (case 1)
+				}
+			}
+			if (request.method === 'HEAD' && match.movement[0] !== save) return new Response(null, {status: 204, headers: {'Set-Cookie': 'movement=' + match.movement[0] + '_' + match.movement[1] + '_' + match.movement[2] + match.movement[3] + '; Path=/; SameSite=Lax; Secure'}}); // Only update state when the movement field changes
+			if (request.method === 'HEAD') return new Response(null, {status: 204}); // All logic handled at edge, no need to reach origin
+		}
+
+		// Logging handler
+		if (url.pathname === "/rhythm/echo" && request.method === "POST") {
+			let body = await request.text();
+			if (!ARCHIVING.LOG) return new Response('OK');
+			const match = body.match(/rhythm_\d+=.*?(?=rhythm_|$)/g);
+			if (!match) return new Response('OK');
+			const map = {};
+			for (let i = 0; i < match.length; i++) {
+				const split = match[i].split('=');
+				const number = split[0].slice(7);
+				const parts = split[1].split('_');
+				map[number] = {
+					time: parts[1],
+					hash: parts[2],
+					device: +parts[3],
+					referrer: +parts[4],
+					scrolls: +parts[5],
+					clicks: +parts[6],
+					duration: +parts[7],
+					beat: parts.slice(8).join('_').split(/(___\d+)/).filter(Boolean)
+				};
+			}
+			const first = String(Math.min(...Object.keys(map).map(Number)));
+			let current = first;
+			let flow = '';
+			const index = {};
+			while (map[current]) {
+				const i = index[current] || 0;
+				if (i >= map[current].beat.length) break;
+				const token = map[current].beat[i];
+				index[current] = i + 1;
+				flow += token;
+				if (token.startsWith('___')) current = token.slice(3);
+			}
+			const leader = map[first];
+			const merge = {};
+			if (ARCHIVING.TIME && leader.time) merge.time = leader.time; // Include timestamp in logs. Excluding it helps reduce re-identification risk and strengthen compliance (default: false)
+			if (ARCHIVING.HASH && leader.hash) merge.hash = leader.hash; // Include hash in logs. Must be enabled for reassembly when batches are fragmented by producer settings such as POW=true (default: false)
+			merge.device = leader.device;
+			merge.referrer = leader.referrer;
+			merge.scrolls = 0;
+			merge.clicks = 0;
+			let maxDur = 0;
+			for (const number in map) {
+				merge.scrolls += map[number].scrolls;
+				merge.clicks += map[number].clicks;
+				if (map[number].duration > maxDur) maxDur = map[number].duration;
+			}
+			merge.duration = +(maxDur * BEAT.TIC / 1000).toFixed(1);
+			merge.beat = flow.replace(RE_TIME, (_, s, n) => s + (+n * BEAT.TIC / 1000).toFixed(1));
+			if (ARCHIVING.SPACE) { // Add spaces to BEAT string for better readability (default: true)
+				merge.beat = merge.beat
+					.replace(RE_SPACE, ' $1')
+					.replace(/___(\d+)/g, ' ___$1')
+					.trimStart();
+			}
+
+			// BEAT sequences can be serialized as NDJSON so each journey stays on a single line.
+			// This keeps logs compact, makes querying simple, and improves AI processing efficiency.
+			body = JSON.stringify(merge);
+
+			// 🚨 Important: AI prompt dynamically adjusts based on BEAT tokens. Please review the structure carefully before making modifications
+			if (ARCHIVING.AI.INSIGHTS && env[ARCHIVING.AI.NAME] && merge.clicks >= ARCHIVING.AI.BOUNCE) { // AI insights skipped below N clicks (default: 1)
+				const time = ARCHIVING.TIME ? `"time":"1735680000",` : '';
+				const hash = ARCHIVING.HASH ? `"hash":"x7n4kb2p",` : '';
+				const example = ARCHIVING.SPACE ? EX_SPACE : EX_DEFAULT;
+				const space = ARCHIVING.SPACE ? ' ' : '';
+				let messages;
+				if (ARCHIVING.AI.PROMPT === 1) { // Prompt format. Higher numbers need more capable AI (default: 1)
+					messages = [{
+						role: 'system',
+						content: `You are a web analytics expert specializing in user behavior pattern recognition, and your task is to convert NDJSON data into precise natural-language analysis.
+						Produce exactly three lines in this order: [SUMMARY], [ISSUE], [ACTION].
+						Follow the << EXAMPLE >> for structure, length, and style, and tailor content to this site type: ${ARCHIVING.AI.TYPE[ARCHIVING.AI.SITE - 1]}
+						Do not include any extra text and do not quote the input.
+
+						---------
+
+						<< EXAMPLE >>
+
+						Input = {${time}${hash}"device":1,"referrer":5,"scrolls":56,"clicks":15,"duration":1205.2,"beat":"${example}"}
+
+						Output =
+						[SUMMARY] Confused behavior. Landed on homepage, hesitated in help section with repeated clicks at 37 and 12 second intervals. Moved to product page, opened details in a new tab, viewed images for about 240 seconds. Tapped buy button three times at 1.3, 0.8, and 0.8 second intervals. Returned to the first tab and opened cart shortly after, but didn’t proceed to checkout.
+						[ISSUE] Cart reached but purchase not completed. Repeated buy actions may reflect either intentional multi-item additions or friction in option selection. Long delay before checkout suggests uncertainty.
+						[ACTION] Evaluate if repeated buy or cart actions represent deliberate comparison behavior or checkout friction. If friction is likely, simplify option handling and highlight key product details earlier in the flow.
+
+						---------
+
+						[SUMMARY]
+						Analyze the "beat" field. Start with one behavior type and put it as the first word. Summarize the user journey chronologically using time intervals. Keep it brief, following the << EXAMPLE >> length.
+
+						Behavior Types:
+						Normal behavior = Varied rhythm with smooth flow and human-like patterns
+						Confused behavior = Hesitant rhythm with repetitive and abandonment patterns
+						Irregular behavior = Erratic rhythm with potentially fake or manipulated patterns
+						Bot-like behavior = Mechanical rhythm with perfect timing, 0 scrolls, or repeated page navigation showing non-human patterns
+
+						Beat Syntax:
+						${BEAT.TOK.S} = page
+						${BEAT.TOK.T} = time interval from the previous event to selecting the next event
+						${BEAT.TOK.A} = element
+						${BEAT.TOK.R} = time interval when repeatedly selecting the same event
+						___N = tab switch
+						(e.g., ${BEAT.TOK.S}home, ${BEAT.TOK.S}product-01, ${BEAT.TOK.S}x3n, ${BEAT.TOK.S}ds9df, ${BEAT.TOK.A}7div1, ${BEAT.TOK.A}6p4, ${BEAT.TOK.A}button, ${BEAT.TOK.T}1.3, ${BEAT.TOK.T}43.1${BEAT.TOK.R}0.6${BEAT.TOK.R}1.2, ${BEAT.TOK.T}6.4${BEAT.TOK.R}8.3, ___2, ___1, ___3)
+
+						Beat Interpretation:
+						'${BEAT.TOK.R}' shows time intervals when the same element is selected repeatedly. For example, ${BEAT.TOK.T}1.3${BEAT.TOK.R}0.8${BEAT.TOK.R}0.8${space}${BEAT.TOK.A}button means ${BEAT.TOK.T}1.3${space}${BEAT.TOK.A}button${space}${BEAT.TOK.T}0.8${space}${BEAT.TOK.A}button${space}${BEAT.TOK.T}0.8${space}${BEAT.TOK.A}button.
+						Beat syntax should be interpreted in two group units to understand the entire flow and write effectively. The small group is from '${BEAT.TOK.S}' (page) until the next '${BEAT.TOK.S}' (page) appears. The large group is from '___N' (tab switch) until the next '___N' (tab switch) appears.
+						Keep it brief, following the << EXAMPLE >> length. Focus on essential flow, not every detail.
+
+						---
+
+						[ISSUE]
+						Identify the conversion inhibitors or causes of metric distortion from the SUMMARY. Keep it concise and factual.
+
+						---
+
+						[ACTION]
+						Suggest one clear and specific measure to resolve the ISSUE.`
+					}, {
+						role: 'user',
+						content: body
+					}];
+				} else if (ARCHIVING.AI.PROMPT === 2) {
+					messages = [{
+						role: 'system',
+						content: `You are a web analytics expert specializing in user behavior pattern recognition, and your task is to convert NDJSON data into precise natural-language analysis.
+						Produce exactly four lines in this order: [CONTEXT], [SUMMARY], [ISSUE], [ACTION].
+						Follow the << EXAMPLE >> for structure, length, and style, and tailor content to this site type: ${ARCHIVING.AI.TYPE[ARCHIVING.AI.SITE - 1]}
+						Do not include any extra text and do not quote the input.
+
+						---------
+
+						<< EXAMPLE >>
+
+						Input = {${time}${hash}"device":1,"referrer":5,"scrolls":56,"clicks":15,"duration":1205.2,"beat":"${example}"}
+
+						Output =
+						[CONTEXT] Mobile user, Mapped(5) visit, 56 scrolls, 15 clicks, 1205.2 seconds
+						[SUMMARY] Confused behavior. Landed on homepage, hesitated in help section with repeated clicks at 37 and 12 second intervals. Moved to product page, opened details in a new tab, viewed images for about 240 seconds. Tapped buy button three times at 1.3, 0.8, and 0.8 second intervals. Returned to the first tab and opened cart shortly after, but didn’t proceed to checkout.
+						[ISSUE] Cart reached but purchase not completed. Repeated buy actions may reflect either intentional multi-item additions or friction in option selection. Long delay before checkout suggests uncertainty.
+						[ACTION] Evaluate if repeated buy or cart actions represent deliberate comparison behavior or checkout friction. If friction is likely, simplify option handling and highlight key product details earlier in the flow.
+
+						---------
+
+						[CONTEXT]
+						Write by comparing the NDJSON fields as follows.
+
+						"device":
+						0 = Desktop user
+						1 = Mobile user
+						2 = Tablet user
+
+						"referrer":
+						0 = Direct visit
+						1 = Internal visit
+						2 = Unknown visit
+						3+ = Mapped(n) visit
+
+						"scrolls":
+						Use the input value as is. (e.g., 13 scrolls)
+
+						"clicks":
+						Use the input value as is. (e.g., 25 clicks)
+
+						"duration":
+						Use the input value as is. (e.g., 257.9 seconds)
+
+						---
+
+						[SUMMARY]
+						Analyze the "beat" field. Start with one behavior type and put it as the first word. Summarize the user journey chronologically using time intervals. Keep it brief, following the << EXAMPLE >> length.
+
+						Behavior Types:
+						Normal behavior = Varied rhythm with smooth flow and human-like patterns
+						Confused behavior = Hesitant rhythm with repetitive and abandonment patterns
+						Irregular behavior = Erratic rhythm with potentially fake or manipulated patterns
+						Bot-like behavior = Mechanical rhythm with perfect timing, 0 scrolls, or repeated page navigation showing non-human patterns
+
+						Beat Syntax:
+						${BEAT.TOK.S} = page
+						${BEAT.TOK.T} = time interval from the previous event to selecting the next event
+						${BEAT.TOK.A} = element
+						${BEAT.TOK.R} = time interval when repeatedly selecting the same event
+						___N = tab switch
+						(e.g., ${BEAT.TOK.S}home, ${BEAT.TOK.S}product-01, ${BEAT.TOK.S}x3n, ${BEAT.TOK.S}ds9df, ${BEAT.TOK.A}7div1, ${BEAT.TOK.A}6p4, ${BEAT.TOK.A}button, ${BEAT.TOK.T}1.3, ${BEAT.TOK.T}43.1${BEAT.TOK.R}0.6${BEAT.TOK.R}1.2, ${BEAT.TOK.T}6.4${BEAT.TOK.R}8.3, ___2, ___1, ___3)
+
+						Beat Interpretation:
+						'${BEAT.TOK.R}' shows time intervals when the same element is selected repeatedly. For example, ${BEAT.TOK.T}1.3${BEAT.TOK.R}0.8${BEAT.TOK.R}0.8${space}${BEAT.TOK.A}button means ${BEAT.TOK.T}1.3${space}${BEAT.TOK.A}button${space}${BEAT.TOK.T}0.8${space}${BEAT.TOK.A}button${space}${BEAT.TOK.T}0.8${space}${BEAT.TOK.A}button.
+						Beat syntax should be interpreted in two group units to understand the entire flow and write effectively. The small group is from '${BEAT.TOK.S}' (page) until the next '${BEAT.TOK.S}' (page) appears. The large group is from '___N' (tab switch) until the next '___N' (tab switch) appears.
+						Keep it brief, following the << EXAMPLE >> length. Focus on essential flow, not every detail.
+
+						---
+
+						[ISSUE]
+						Identify the conversion inhibitors or causes of metric distortion from the SUMMARY. Keep it concise and factual.
+
+						---
+
+						[ACTION]
+						Suggest one clear and specific measure to resolve the ISSUE.`
+					}, {
+						role: 'user',
+						content: body
+					}];
+				}
+
+				// 🚨 Important: env[ARCHIVING.AI.NAME] is your AI provider
+				ctx.waitUntil(
+					env[ARCHIVING.AI.NAME].run( // AI binding name (default: AI)
+						ARCHIVING.AI.MODEL, // AI model (default: @cf/openai/gpt-oss-20b)
+						ARCHIVING.AI.MODEL.includes('gpt-oss') ? { input: messages.map(m => `[${m.role.toUpperCase()}]\n${m.content}`).join('\n\n') } : { messages }
+					).then(r => console.log(body + '\n' + (r?.output?.filter(x => x.type === 'message') ?? [r]).map(o => o?.content?.[0]?.text ?? o?.response).join('\n')))
+				);
+			} else {
+				console.log(body);
+			}
+			return new Response('OK');
+		}
+
+		// Archiving handler
+		if (url.pathname === "/rhythm/archive" && url.searchParams.get("token") === (env.ARCHIVE_TOKEN || ARCHIVING.STORE.TOKEN)) {
+			if (!env[ARCHIVING.STORE.NAME]) return fetch(request); // Pass through if no storage
+			const date = url.searchParams.get('date'); // Optional YYYY-MM-DD override
+			const force = url.searchParams.has('force'); // Force rebuild even if report already exists
+			const targets = date ? [date] : (() => { // Build date list from LOOKBACK window
+			    const now = Date.now() + (ARCHIVING.STORE.GMT * 60 * 60 * 1000); // Shift to local timezone
+			    return Array(ARCHIVING.STORE.LOOKBACK).fill(0).map((_, i) => new Date(now - i * 86400000).toISOString().slice(0, 10)); // Days to include from recent window (default: 2)
+			})();
+			const results = [];
+			for (const target of targets) {
+				const path = `archive/${target}.log`;
+				if (!force && await env[ARCHIVING.STORE.NAME].head(path)) { // Skip if report already exists
+					results.push({date: target, status: 'skipped', reason: 'already_merged'});
+					continue;
+				}
+				const meta = { // Initialize all report fields with zero values
+					total: 0,
+					device: {desktop: 0, mobile: 0, tablet: 0},
+					referrer: {direct: 0, internal: 0, unknown: 0, specific: 0},
+					average: {scroll: 0, click: 0, duration: 0},
+					hour: {"00":0,"01":0,"02":0,"03":0,"04":0,"05":0,"06":0,"07":0,"08":0,"09":0,"10":0,"11":0,"12":0,"13":0,"14":0,"15":0,"16":0,"17":0,"18":0,"19":0,"20":0,"21":0,"22":0,"23":0}
+				};
+				const hours = Array(24).fill(null).map(() => []); // Initialize 24 hour buckets
+				const start = new Date(target + 'T00:00:00Z').getTime() - (ARCHIVING.STORE.GMT * 60 * 60 * 1000); // Calculate UTC folder range for local date
+				const end = start + 86400000;
+				const day1 = new Date(start).toISOString().slice(0,10).replace(/-/g,'');
+				const day2 = new Date(end - 1).toISOString().slice(0,10).replace(/-/g,'');
+				const list1 = await env[ARCHIVING.STORE.NAME].list({prefix: day1 + '/'}); // Scan folders sequentially
+				const list2 = day1 !== day2 ? await env[ARCHIVING.STORE.NAME].list({prefix: day2 + '/'}) : {objects: []};
+				const list = {objects: [...list1.objects, ...list2.objects]};
+				if (list.objects.length) { // Process existing logs
+					let scrolls = 0, clicks = 0, duration = 0; // For average calculation across all batches
+					for (let i = 0; i < list.objects.length; i += ARCHIVING.STORE.BATCH) { // Files to process at once, batch size for memory safety (default: 6)
+						const batch = list.objects.slice(i, i + ARCHIVING.STORE.BATCH);
+						const files = await Promise.all(
+							batch.map(object => env[ARCHIVING.STORE.NAME].get(object.key))
+						);
+						const texts = await Promise.all(
+							files.map(async file => {
+								if (!file) return ''; // Null check for failed get
+								const stream = new DecompressionStream('gzip');
+								const writer = stream.writable.getWriter();
+								writer.write(await file.arrayBuffer());
+								writer.close();
+								return new Response(stream.readable).text();
+							})
+						);
+						for (const text of texts) {
+							const lines = text.split('\n').filter(Boolean);
+							for (const line of lines) {
+								try { // JSON parse error protection
+									const parsed = JSON.parse(line);
+									const message = parsed.Logs?.[0]?.Message?.[0];
+									if (!message) continue; // Skip empty logs
+									const split = message.indexOf('\n');
+									let data, analysis;
+									if (split === -1) { // No AI analysis
+										data = JSON.parse(message);
+										analysis = null;
+									} else { // Has AI analysis
+										data = JSON.parse(message.slice(0, split));
+										analysis = message.slice(split + 1).trim().replace(/\n\n+/g, '\n');
+									}
+									const ts = parsed.Logs[0].TimestampMs;
+									const local = new Date(ts + (ARCHIVING.STORE.GMT * 60 * 60 * 1000)).toISOString().slice(0, 10); // Local date for filtering
+									if (local !== target) continue; // Skip if not target date
+									const hour = (new Date(ts).getUTCHours() + ARCHIVING.STORE.GMT + 24) % 24; // Local hour
+									const hourKey = hour.toString().padStart(2, '0');
+									hours[hour].push({data, ai: analysis || ''}); // Store with empty string if no AI
+									meta.total++;
+									meta.hour[hourKey]++; // Increment hour count
+									if (data.device === 0) meta.device.desktop++; // Device count
+									else if (data.device === 1) meta.device.mobile++;
+									else if (data.device === 2) meta.device.tablet++;
+									if (data.referrer === 0) meta.referrer.direct++; // Referrer count
+									else if (data.referrer === 1) meta.referrer.internal++;
+									else if (data.referrer === 2) meta.referrer.unknown++;
+									else meta.referrer.specific++;
+									scrolls += data.scrolls || 0;
+									clicks += data.clicks || 0;
+									duration += data.duration || 0;
+								} catch {} // Ignore parse errors and continue
+							}
+						}
+					}
+					if (meta.total > 0) { // Calculate averages after all batches processed
+						meta.average.scroll = +(scrolls / meta.total).toFixed(1);
+						meta.average.click = +(clicks / meta.total).toFixed(1);
+						meta.average.duration = +(duration / meta.total).toFixed(1);
+					}
+				}
+				const blocks = [ // Build content with metadata, always included even if all zeros
+					`---\n\n## ${target}\n`, // Added blank line after ---
+					`<!-- ${JSON.stringify({total: meta.total})} -->\n`, // Total first
+					`<!-- {"hour":{${Array(24).fill(0).map((_, i) => `"${i.toString().padStart(2,'0')}":${meta.hour[i.toString().padStart(2,'0')]}`).join(',')}}} -->\n`, // Hour distribution second
+					`<!-- ${JSON.stringify({device: meta.device})} -->\n`,
+					`<!-- ${JSON.stringify({referrer: meta.referrer})} -->\n`,
+					`<!-- ${JSON.stringify({average: meta.average})} -->\n\n`
+				];
+				for (let h = 0; h < 24; h++) { // Add hourly sections with markdown headers
+					blocks.push(`### HOUR ${h.toString().padStart(2, '0')}\n\n`);
+					for (const record of hours[h]) {
+						blocks.push(JSON.stringify(record.data) + '\n');
+						if (record.ai) blocks.push(record.ai + '\n\n'); // Only add AI Insights if exists
+					}
+				}
+				const content = blocks.join('');
+				const saves = [env[ARCHIVING.STORE.NAME].put(path, content)]; // R2 save
+				if (env.GITHUB_TOKEN) { // GitHub save if token exists
+					const file = `archive/${target}.log`;
+					const sha = await hash(env.GITHUB_TOKEN, file);
+					saves.push(fetch(`https://api.github.com/repos/${ARCHIVING.STORE.GITHUB.OWNER}/${ARCHIVING.STORE.GITHUB.REPO}/contents/${file}`, {
+						method: 'PUT',
+						headers: {
+							'Authorization': `Bearer ${env.GITHUB_TOKEN}`,
+							'User-Agent': 'resonator-archive-worker',
+							'Accept': 'application/vnd.github+json',
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify({
+							message: `${ARCHIVING.STORE.GITHUB.COMMIT} ${target}`, // Commit message prefix (default: Archive logs for YYYY-MM-DD)
+							content: btoa(unescape(encodeURIComponent(content))),
+							branch: ARCHIVING.STORE.GITHUB.BRANCH,
+							...(sha && {sha})
+						})
+					}));
+				}	
+				await Promise.all(saves); // Parallel save to R2 and GitHub
+				results.push({date: target, status: 'merged', entries: meta.total});
+			}
+			return new Response(JSON.stringify(results), {
+				headers: {'Content-Type': 'application/json'}
+			});
+		}
+		return fetch(request);
+	},
+	async scheduled(event, env, ctx) {
+		if (!ARCHIVING.STORE.CRON) return; // Enable cron job (default: false)
+		await this.fetch(new Request(`https://localhost/rhythm/archive?token=${env.ARCHIVE_TOKEN || ARCHIVING.STORE.TOKEN}&force`), env, ctx); // Cron always runs with force enabled
+	}
+};
+
+// Scan BEAT
+function scan(cookies) {
+	let get;
+	if (!(cookies && cookies.length < HEADER.SIZE && (get = (cookies.match(/movement=([^;]+)/) || [])[1]))) return { bot:null, human:null, movement:null }; // Header size limit (default: 30 KB)
+	const cut = get.indexOf('___');
+	const movement = get.slice(0, cut).split('_').concat(get.slice(cut));
+	const rhythm = /rhythm_(\d+)=([^;]+)/g;
+	let match, bot = null, human = null;
+	while ((match = rhythm.exec(cookies))) {
+		const parts = match[2].split('_');
+		const data = {scrolls: +parts[5], clicks: +parts[6], duration: +parts[7], beat: parts.slice(8).join('_')};
+		if (!data.beat) continue;
+		bot = preExecution(data);
+		human = inExecution(data);
+		if (bot || human) break;
+	}
+	return {bot, human, movement};
+}
+
+// Listens for the bot BEAT (default: true)
+function preExecution(data) {
+
+	// MachineGun: 200ms or less, 10+ consecutive
+	const machinegun = data.beat.match(new RegExp(`\\${BEAT.TOK.T}(\\d+)`, 'g'));
+	if (machinegun && machinegun.length >= 10) for (let i = 0, count = 0; i < machinegun.length; i++)
+		if ((count = +machinegun[i].slice(1) <= 200/BEAT.TIC ? count + 1 : 0) >= 10) return `MachineGun:${count}`;
+
+	// Metronome: same interval 8+ times
+	const metronome = data.beat.match(new RegExp(`[\\${BEAT.TOK.R}\\${BEAT.TOK.T}](\\d+)([\\${BEAT.TOK.R}\\${BEAT.TOK.T}]\\1){7,}`));
+	if (metronome) return `Metronome:${metronome[1]}`;
+
+	// NoVariance: standard deviation < 2, need 4+ data points
+	const novariance = data.beat.match(new RegExp(`\\${BEAT.TOK.T}(\\d+)`, 'g'));
+	if (novariance && novariance.length >= 4) {
+		const values = novariance.map(t => +t.slice(1)), average = values.reduce((x, y) => x + y) / values.length;
+		const spread = Math.sqrt(values.reduce((s, x) => s + (x - average) ** 2, 0) / values.length);
+		if (spread < 200/BEAT.TIC && average > 1000/BEAT.TIC) return `NoVariance:${spread.toFixed(1)}`;
+	}
+
+	// Arithmetic: constant interval increase/decrease, 4+ points
+	const arithmetic = data.beat.match(new RegExp(`\\${BEAT.TOK.T}(\\d+)`, 'g'));
+	if (arithmetic && arithmetic.length >= 4) {
+		const values = arithmetic.map(t => +t.slice(1)), delta = values[1] - values[0];
+		if (delta && values.every((x, i) => !i || x - values[i - 1] === delta)) return `Arithmetic:${delta > 0 ? '+' : ''}${delta}`;
+	}
+
+	// Geometric: constant multiplication ratio, 4+ points
+	const geometric = data.beat.match(new RegExp(`\\${BEAT.TOK.T}(\\d+)`, 'g'));
+	if (geometric && geometric.length >= 4) {
+		const values = geometric.map(t => +t.slice(1));
+		const ratio = values[0] > 0 && values[1] > 0 && values[1] / values[0];
+		if (ratio && ratio !== 1 && values.every((x, i) => !i || (values[i - 1] > 0 && Math.abs(x / values[i - 1] - ratio) < 0.01))) return `Geometric:x${ratio.toFixed(1)}`;
+	}
+
+	// PingPong: A-B-A-B page bounce, 3+ cycles (6 pages total)
+	const pingpong = data.beat.match(new RegExp(`\\${BEAT.TOK.S}([^\\${BEAT.TOK.T}\\${BEAT.TOK.A}\\${BEAT.TOK.S}]+)\\${BEAT.TOK.S}([^\\${BEAT.TOK.T}\\${BEAT.TOK.A}\\${BEAT.TOK.S}]+)(?:\\${BEAT.TOK.S}\\1\\${BEAT.TOK.S}\\2)+`));
+	if (pingpong && pingpong[0].split(BEAT.TOK.S).filter(Boolean).length >= 6) return `PingPong:${pingpong[1]}-${pingpong[2]}`;
+
+	// Surface: DOM depth ≤2 is 90%+, need 10+ clicks
+	const surface = data.beat.match(new RegExp(`\\${BEAT.TOK.A}(\\d+)`, 'g'));
+	if (surface && surface.length >= 10) {
+		const shallow = surface.filter(d => +d.slice(1) <= 2).length;
+		if (shallow / surface.length > 0.9) return `Surface:${shallow}/${surface.length}`;
+	}
+
+	// Monotonous: diversity < 15%, need 20+ clicks
+	const monotonous = data.beat.match(new RegExp(`\\${BEAT.TOK.A}[^\\${BEAT.TOK.S}\\${BEAT.TOK.T}]+`, 'g'));
+	if (monotonous && monotonous.length >= 20) {
+		const unique = new Set(monotonous).size;
+		if (unique / monotonous.length < 0.15) return `Monotonous:${unique}t`;
+	}
+
+	// 🚨 Important: This is an example implementation
+	// Detects 2+ rapid clicks on tap-repetition-demo-button (~3/1/2*tap-repetition-demo-button)
+	const example = data.beat.match(/((?:~[0-4]|\/[0-4])+)\*tap-repetition-demo-button[~\d.]*$/);
+	if (example) {
+		const count = (example[1].match(/[~\/]/g) || []).length;
+		if (count >= 2) return `BotExample:${count}`;
+	}
+	return null;
+}
+
+// Listens for the human BEAT (default: true)
+function inExecution(data) {
+
+	// 🚨 Important: This is an example implementation
+	// Detects 2+ slow clicks on tap-repetition-demo-button (~15/12/14*tap-repetition-demo-button)
+	// Sets personalization field to 0100000000 to trigger client-side behavior (e.g., show welcome popup)
+	const example = data.beat.match(/((?:~(?:[5-9]|\d{2,})|\/(?:[5-9]|\d{2,}))+)\*tap-repetition-demo-button[~\d.]*$/);
+	if (example) {
+		const count = (example[1].match(/[~\/]/g) || []).length;
+		if (count >= 2) return 1; // Use personalization field position 1 (XOXXXXXXXX)
+	}
+	if (false) return 2; // Use personalization field position 2 (XXOXXXXXXX)
+	if (false) return 3; // Use personalization field position 3 (XXXOXXXXXX)
+	if (false) return 4; // Use personalization field position 4 (XXXXOXXXXX)
+	if (false) return 5; // Use personalization field position 5 (XXXXXOXXXX)
+	if (false) return 6; // Use personalization field position 6 (XXXXXXOXXX)
+	if (false) return 7; // Use personalization field position 7 (XXXXXXXOXX)
+	if (false) return 8; // Use personalization field position 8 (XXXXXXXXOX)
+	if (false) return 9; // Use personalization field position 9 (XXXXXXXXXO)
+	return null;
+}
+
+// Get file SHA from GitHub
+async function hash(token, file) {
+	const response = await fetch(`https://api.github.com/repos/${ARCHIVING.STORE.GITHUB.OWNER}/${ARCHIVING.STORE.GITHUB.REPO}/contents/${file}`, {
+		headers: {
+			'Authorization': `Bearer ${token}`,
+			'User-Agent': 'resonator-archive-worker',
+			'Accept': 'application/vnd.github+json',
+		}
+	});
+	if (response.ok) {
+		const data = await response.json();
+		return data.sha;
+	}
+	return null;
+}
