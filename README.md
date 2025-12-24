@@ -50,7 +50,7 @@ v = srf == 58			# ':' Causal Value (why)
 (i32.eq (local.get $srf) (i32.const 58))	;; ':' Causal Value (why)
 ```
 
-Resonator is protected under the SSPL-1.0 License. In the RESONATOR CUSTOM LAYER, all other logic, including control flow and execution policies, security and risk controls, routing and orchestration, resource management, output policy, AI components, analytics, and strategies specific to the target domain or environment, may be modified or extended as needed.
+Resonator is protected under the AGPL-3.0-or-later License. In the RESONATOR CUSTOM LAYER, all other logic may be modified or extended as needed, including but not limited to control flow, routing, resource management, output policy, AI components, analytics, security, and domain-specific strategies.
 
 ### RESONATOR CUSTOM LAYER
 
@@ -85,16 +85,16 @@ And BEAT can be one of the drivers of that shift. As an SRF, its expressive form
 
 ## License
 
-- **BEAT**: AGPL-3.0-or-later License - [https://github.com/aidgncom/beat](https://github.com/aidgncom/beat)
-- **Resonator**: SSPL-1.0 License - [https://github.com/aidgncom/resonator](https://github.com/aidgncom/resonator)
+- **BEAT**: GPL-3.0-or-later License - [https://github.com/aidgncom/beat](https://github.com/aidgncom/beat)
+- **Resonator**: AGPL-3.0-or-later License - [https://github.com/aidgncom/resonator](https://github.com/aidgncom/resonator)
 
-BEAT is the Semantic Raw Format (SRF) standard. BEAT sequences can be directly read by both humans and AI without parsing (Semantic), preserve information in their original state (Raw), and maintain a fully organized structure (Format). Offering BEAT as a service to others or modifications to this format specification must comply with AGPL-3.0-or-later terms.
+BEAT is the Semantic Raw Format (SRF) standard. BEAT sequences can be directly read by both humans and AI without parsing (Semantic), preserve information in their original state (Raw), and maintain a fully organized structure (Format). Distributing BEAT or modifications to this format specification must comply with GPL-3.0-or-later terms.
 
-Resonator is the official reference implementation for interpreting BEAT and is licensed under the SSPL. This license applies across Finance, Game, Healthcare, IoT, Logistics, and other environments, and internal use is unrestricted. However, if BEAT-based logic, as defined and implemented in this project, is provided to third parties as a service, the SSPL-1.0 source disclosure requirements apply.
+Resonator is the official reference implementation for interpreting BEAT and is licensed under the AGPL-3.0-or-later. This license applies across Finance, Game, Healthcare, IoT, Logistics, and other environments, and internal use is unrestricted. If BEAT-based logic, as defined and implemented, is provided to third parties, the AGPL-3.0-or-later source disclosure requirements apply.
 
 BEAT is defined as an expressive format for structured semantics. Consistent interpretation of BEAT across different environments is also important to maintain semantic compatibility. Therefore, alternative implementations that claim equivalence are expected to use the Compatibility criteria provided below to verify interpretation consistency.
 
-**Compatibility**: BEAT is considered compatible even if the tokens vary within Printable ASCII (0x20 to 0x7E) or the implementation differs, as long as event data is expressed using the sequential notation defined in the BEAT specification, preserves expressive semantics including but not limited to the space where events occur, the time when events occur, and the depth of each event, and maintains a substantially similar semantic stream regardless of how it is stored or transmitted. Semantic compatibility is determined by the semantic stream expressed within BEAT's eight-state (3-bit) semantic layout, irrespective of implementation details such as token choice, token order, token subsets, or storage representation. Any such compatible implementation constitutes a derivative work under copyright law and must comply with AGPL-3.0-or-later terms.
+**Compatibility**: BEAT is considered compatible even if the tokens vary within Printable ASCII (0x20 to 0x7E) or the implementation differs, as long as event data is expressed using the sequential notation defined in the BEAT specification, preserves expressive semantics including but not limited to the space where events occur, the time when events occur, and the depth of each event, and maintains a substantially similar semantic stream regardless of how it is stored or transmitted. Semantic compatibility is determined by the semantic stream expressed within BEAT's eight-state (3-bit) semantic layout, irrespective of implementation details such as token choice, token order, token subsets, or storage representation. Any such compatible implementation constitutes a derivative work under copyright law and must comply with GPL-3.0-or-later terms.
 
 See individual source files for detailed license information.
 
