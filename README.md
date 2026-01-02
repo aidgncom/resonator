@@ -60,6 +60,12 @@ As the Semantic Raw Format (SRF) standard, BEAT expresses sequences in an eight-
 
 **In-execution Evaluation**: This layer evaluates patterns that contain intention, exploration, or choice dynamics. This evaluation can adjust not only priority and routing, but also strategy, resource allocation, and the form or intensity of execution itself, with the specific outcome varying by domain and implementation. In Web environments, this layer is well-suited for real-time personalization, adaptive UI responses, and guidance during user exploration.
 
+**1-byte scan**: BEAT reaches speeds that challenge physical limits through 1-byte scanning. This optimizes the core axes of computing resources (Space, Time, Depth), an inevitable outcome of BEAT's core values. In Web environments, this brings C-style scanning in JavaScript.
+
+- Zero-Allocation Stability (Space): No intermediate objects, parsing trees, or temporary structures are created, keeping memory allocation and GC intervention near zero. Latency does not accumulate under traffic spikes, and performance stays stable in long-running environments.
+- Maximizing Engine Potential (Time): The CPU simply scans contiguous bytes, driving cache locality to the extreme. Execution speed pushes to the limits of the environment itself. Conventional formats and regex-based handling cannot reach this territory. It only becomes possible when 1-byte scanning is assumed from the start.
+- Predictability & Security (Depth): Execution time stays predictable regardless of input, and execution itself never stalls, even under ReDoS-style malicious payloads. Because 1-byte scanning eliminates nested parsing and backtracking, performance collapse is structurally impossible.
+
 **AI Insights**: Resonator can collaborate with a lightweight AI model to generate real-time insight reports for each BEAT sequence, regardless of where it is deployed (Edge, embedded, xPU, or any environment).
 
 All this accumulated data flows to your AI assistant. This creates an AI-to-AI collaboration flow where lightweight AI creates reports for each run or session and advanced AI synthesizes comprehensive insights from all reports. Dashboards are optional, and humans are not required to manually analyze them. Over time, models may become strong enough that this entire flow finishes in one pass, with no explicit AI-to-AI collaboration step at all. As AI evolves, solutions built on BEAT evolve with it.
